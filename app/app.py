@@ -99,8 +99,9 @@ with st.sidebar:
     st.markdown("EmbodiedIQ整合融资、学术、专利、开源多维信号，辅助具身智能赛道投资决策。")
 
 # 应用筛选
+display_df = companies_df.copy() if not companies_df.empty else pd.DataFrame()
+
 if not companies_df.empty:
-    display_df = companies_df.copy()
     
     if selected_route != '全部':
         display_df = display_df[display_df['tech_route'] == selected_route]
