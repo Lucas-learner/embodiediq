@@ -10,7 +10,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from utils.data_loader import load_all_data
-from utils.scoring import calculate_activity_score, detect_signal_type
+from utils.scoring import calculate_activity_score, detect_signal_type, prepare_companies_df
 
 # 页面配置
 st.set_page_config(
@@ -55,23 +55,8 @@ try:
     papers_df = data['papers'].copy()
     funding_df = data['funding'].copy()
     
-    # 为公司数据生成模拟信号字段（MVP阶段，后续替换为真实数据）
-    np.random.seed(42)
-    companies_df['funding_count_12m'] = companies_df.groupby('company_name')['company_name'].transform('count')
-    companies_df['funding_amount_12m'] = companies_df['amount_rmb_m'].fillna(0)
-    companies_df['paper_count_12m'] = np.random.poisson(lam=3, size=len(companies_df))
-    companies_df['patent_count_12m'] = np.random.poisson(lam=2, size=len(companies_df))
-    companies_df['github_stars'] = np.random.exponential(scale=500, size=len(companies_df)).astype(int)
-    companies_df['github_commits_12m'] = np.random.poisson(lam=50, size=len(companies_df))
-    companies_df['job_postings_12m'] = np.random.poisson(lam=5, size=len(companies_df))
-    
-    # 计算评分
-    scores = companies_df.apply(calculate_activity_score, axis=1, result_type='expand')
-    companies_df = pd.concat([companies_df, scores], axis=1)
-    companies_df['signal_type'] = companies_df.apply(detect_signal_type, axis=1)
-    
-    # 去重：保留每家公司最新融资记录
-    companies_df = companies_df.sort_values('funding_date', ascending=False).drop_duplicates('company_name', keep='first')
+    # 生成模拟信号、计算评分、检测信号类型、去重
+    companies_df = prepare_companies_df(companies_df)
     
 except Exception as e:
     st.error(f"数据加载失败: {e}")
@@ -208,4 +193,4 @@ if not papers_df.empty:
 # 页脚
 st.markdown("---")
 st.caption("📌 数据来源：arXiv、GitHub、IT桔子、公开报道 | 仅供投资研究方法论展示，不构成投资建议")
-st.caption("Built by [你的名字] | 深圳天使投资引导基金投资研究实习生")
+st.caption("Built by 张栩阳 | 深圳天使投资引导基金投资研究实习生")

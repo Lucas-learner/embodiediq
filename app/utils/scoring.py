@@ -54,3 +54,28 @@ def detect_signal_type(row):
         return "Early_Signal"        # 早期信号型（技术强但融资少=机会）
     else:
         return "Low_Activity"        # 低活跃度
+
+
+def prepare_companies_df(companies_df, seed=42):
+    """
+    完整的公司数据预处理流程（消除多文件重复逻辑）：
+    1. 生成模拟信号字段（MVP阶段，后续替换为真实数据）
+    2. 计算五维活跃度评分
+    3. 检测信号类型（去噪）
+    4. 去重：保留每家公司最新融资记录
+    """
+    df = companies_df.copy()
+    np.random.seed(seed)
+    df['funding_count_12m'] = df.groupby('company_name')['company_name'].transform('count')
+    df['funding_amount_12m'] = df['amount_rmb_m'].fillna(0)
+    df['paper_count_12m'] = np.random.poisson(lam=3, size=len(df))
+    df['patent_count_12m'] = np.random.poisson(lam=2, size=len(df))
+    df['github_stars'] = np.random.exponential(scale=500, size=len(df)).astype(int)
+    df['github_commits_12m'] = np.random.poisson(lam=50, size=len(df))
+    df['job_postings_12m'] = np.random.poisson(lam=5, size=len(df))
+
+    scores = df.apply(calculate_activity_score, axis=1, result_type='expand')
+    df = pd.concat([df, scores], axis=1)
+    df['signal_type'] = df.apply(detect_signal_type, axis=1)
+    df = df.sort_values('funding_date', ascending=False).drop_duplicates('company_name', keep='first')
+    return df

@@ -5,7 +5,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.data_loader import load_all_data
-from utils.scoring import calculate_activity_score, detect_signal_type
+from utils.scoring import prepare_companies_df
 
 st.set_page_config(page_title="公司排行 | EmbodiedIQ", layout="wide")
 st.title("🏆 公司活跃度排行")
@@ -14,19 +14,7 @@ data = load_all_data()
 companies_df = data.get('companies', pd.DataFrame())
 
 if not companies_df.empty:
-    np.random.seed(42)
-    companies_df['funding_count_12m'] = companies_df.groupby('company_name')['company_name'].transform('count')
-    companies_df['funding_amount_12m'] = companies_df['amount_rmb_m'].fillna(0)
-    companies_df['paper_count_12m'] = np.random.poisson(lam=3, size=len(companies_df))
-    companies_df['patent_count_12m'] = np.random.poisson(lam=2, size=len(companies_df))
-    companies_df['github_stars'] = np.random.exponential(scale=500, size=len(companies_df)).astype(int)
-    companies_df['github_commits_12m'] = np.random.poisson(lam=50, size=len(companies_df))
-    companies_df['job_postings_12m'] = np.random.poisson(lam=5, size=len(companies_df))
-    
-    scores = companies_df.apply(calculate_activity_score, axis=1, result_type='expand')
-    companies_df = pd.concat([companies_df, scores], axis=1)
-    companies_df['signal_type'] = companies_df.apply(detect_signal_type, axis=1)
-    companies_df = companies_df.sort_values('funding_date', ascending=False).drop_duplicates('company_name', keep='first')
+    companies_df = prepare_companies_df(companies_df)
     
     tech_filter = st.selectbox("技术路线筛选", ['全部'] + sorted(companies_df['tech_route'].dropna().unique().tolist()))
     if tech_filter != '全部':
