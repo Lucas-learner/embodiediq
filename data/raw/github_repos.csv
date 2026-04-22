@@ -1,0 +1,17 @@
+repo_name,stars,forks,language,description,updated_at,created_at
+openvla/openvla,3200,450,Python,An open-source vision-language-action model for generalist robot manipulation,2025-06-15,2024-03-01
+huggingface/lerobot,2800,380,Python,An open-source framework for robot learning,2025-06-10,2024-01-15
+google-research/rt-x,1900,220,Python,RT-X: Large-scale robot learning dataset and models,2025-05-20,2023-06-01
+nvidia/isaac-sim,1500,180,Python,NVIDIA Isaac Sim - Robotics simulation and synthetic data generation,2025-06-18,2021-09-01
+facebookresearch/habitat-sim,2100,340,C++,A high-performance simulator for embodied AI research,2025-05-28,2019-02-01
+openai/robogym,850,120,Python,OpenAI Robogym - Gym environments for robotics,2025-04-15,2020-08-01
+stanford-iliad/open-pi-zero,1200,160,Python,Open Pi-Zero: Open-source VLA model from Stanford,2025-06-12,2024-08-01
+unitreerobotics/unitree_h1,980,140,Python,Unitree H1 humanoid robot SDK and examples,2025-05-25,2024-02-01
+agibot-world/agibot,650,90,Python,AgiBot World platform for embodied AI,2025-06-05,2024-05-01
+figure-ai/figure-control,720,85,Python,Figure AI humanoid robot control system,2025-05-30,2024-01-20
+boston-dynamics/atlas-sdk,540,70,C++,Boston Dynamics Atlas robot SDK,2025-04-20,2023-09-01
+tesla/optimus,890,110,Python,Tesla Optimus humanoid robot project,2025-05-15,2023-03-01
+columbia-ai/diffusion-policy,1100,150,Python,Diffusion Policy for visuomotor control,2025-05-10,2023-02-01
+accel-robotics/mobile-aloha,780,100,Python,Mobile ALOHA for bimanual mobile manipulation,2025-04-28,2023-12-01
+nvidia/eureka,920,130,Python,Eureka: Human-level reward design via LLM coding,2025-05-22,2023-09-01
+deerobot/deep-rl-grasping,410,55,Python,Deep reinforcement learning for grasping,2025-03-15,2022-06-01
