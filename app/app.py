@@ -6,20 +6,20 @@ import plotly.graph_objects as go
 import sys
 import os
 
-# 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from utils.data_loader import load_all_data
-from utils.scoring import calculate_activity_score, detect_signal_type, prepare_companies_df
+from utils.scoring import prepare_companies_df
+from utils.i18n import render_language_selector, t, get_lang, translate_signal_type, translate_tech_route
 
-# 页面配置
+lang = get_lang()
+
 st.set_page_config(
-    page_title="EmbodiedIQ | 具身智能投资雷达",
+    page_title=t("page_title_main"),
     page_icon="🤖",
     layout="wide"
 )
 
-# 自定义CSS
 st.markdown("""
 <style>
 .main-header {
@@ -39,12 +39,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 主标题
 st.markdown('<p class="main-header">🤖 EmbodiedIQ</p>', unsafe_allow_html=True)
-st.markdown('<p class="sub-header">具身智能赛道投资信号雷达 | Embodied Intelligence Investment Radar</p>', unsafe_allow_html=True)
+st.markdown(f'<p class="sub-header">{t("sub_header")}</p>', unsafe_allow_html=True)
 st.markdown("---")
 
-# 加载数据
 @st.cache_data
 def get_data():
     return load_all_data()
@@ -54,143 +52,151 @@ try:
     companies_df = data['companies'].copy()
     papers_df = data['papers'].copy()
     funding_df = data['funding'].copy()
-    
-    # 生成模拟信号、计算评分、检测信号类型、去重
     companies_df = prepare_companies_df(companies_df)
-    
 except Exception as e:
-    st.error(f"数据加载失败: {e}")
-    st.info("请确保数据文件已准备就绪。首次使用可参考README准备数据。")
+    st.error(t("data_load_error").format(e=e))
+    st.info(t("data_load_hint"))
     companies_df = pd.DataFrame()
     papers_df = pd.DataFrame()
     funding_df = pd.DataFrame()
 
-# 侧边栏
 with st.sidebar:
-    st.header("⚙️ 筛选器")
-    
-    if not companies_df.empty:
-        # 技术路线筛选
-        tech_routes = ['全部'] + sorted(companies_df['tech_route'].dropna().unique().tolist())
-        selected_route = st.selectbox("技术路线", tech_routes)
-        
-        # 时间范围
-        time_range = st.selectbox("时间范围", ["全部", "最近6个月", "最近12个月", "2025年", "2024年"])
-        
-        # 活跃度排序
-        sort_by = st.selectbox("排序方式", ["综合活跃度", "融资活跃度", "学术活跃度", "开源活跃度"])
-    
-    st.markdown("---")
-    st.markdown("**关于**")
-    st.markdown("EmbodiedIQ整合融资、学术、专利、开源多维信号，辅助具身智能赛道投资决策。")
+    render_language_selector()
+    st.header(t("sidebar_filter"))
 
-# 应用筛选
+    if not companies_df.empty:
+        tech_routes_raw = companies_df['tech_route'].dropna().unique().tolist()
+        tech_routes_display = [t("all")] + sorted([translate_tech_route(r) for r in tech_routes_raw])
+        selected_route_display = st.selectbox(t("tech_route_label"), tech_routes_display, key=f"route_{lang}")
+
+        time_options = [t("time_all"), t("time_6m"), t("time_12m"), t("time_2025"), t("time_2024")]
+        time_range = st.selectbox(t("time_range_label"), time_options, key=f"time_{lang}")
+
+        sort_options = [t("sort_overall"), t("sort_funding"), t("sort_academic"), t("sort_opensource")]
+        sort_by = st.selectbox(t("sort_by_label"), sort_options, key=f"sort_{lang}")
+
+    st.markdown("---")
+    st.markdown(f"**{t('about')}**")
+    st.markdown(t("about_text"))
+
 display_df = companies_df.copy() if not companies_df.empty else pd.DataFrame()
 
 if not companies_df.empty:
-    
-    if selected_route != '全部':
-        display_df = display_df[display_df['tech_route'] == selected_route]
-    
-    # 时间筛选（简化处理）
-    if time_range == "2025年":
+    if selected_route_display != t("all"):
+        # 将显示值反向映射回原始值进行筛选
+        reverse_tech = {translate_tech_route(r): r for r in tech_routes_raw}
+        selected_route_raw = reverse_tech.get(selected_route_display, selected_route_display)
+        display_df = display_df[display_df['tech_route'] == selected_route_raw]
+
+    if time_range == t("time_2025"):
         display_df = display_df[display_df['funding_date'].astype(str).str.startswith('2025')]
-    elif time_range == "2024年":
+    elif time_range == t("time_2024"):
         display_df = display_df[display_df['funding_date'].astype(str).str.startswith('2024')]
-    
-    # 排序
+
     sort_map = {
-        "综合活跃度": "total_score",
-        "融资活跃度": "funding_score",
-        "学术活跃度": "paper_score",
-        "开源活跃度": "opensource_score"
+        t("sort_overall"): "total_score",
+        t("sort_funding"): "funding_score",
+        t("sort_academic"): "paper_score",
+        t("sort_opensource"): "opensource_score"
     }
     display_df = display_df.sort_values(sort_map.get(sort_by, "total_score"), ascending=False)
 
-# 核心指标卡片
 if not companies_df.empty:
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("📊 覆盖公司", len(companies_df))
+        st.metric(t("metric_companies"), len(companies_df))
     with col2:
-        st.metric("📄 论文追踪", len(papers_df) if not papers_df.empty else 0)
+        st.metric(t("metric_papers"), len(papers_df) if not papers_df.empty else 0)
     with col3:
-        st.metric("💰 融资事件", len(funding_df) if not funding_df.empty else 0)
+        st.metric(t("metric_funding"), len(funding_df) if not funding_df.empty else 0)
     with col4:
         high_signal = len(companies_df[companies_df['signal_type'] == 'Early_Signal'])
-        st.metric("🚨 早期信号", high_signal, help="技术信号强但融资少的机会型项目")
+        st.metric(t("metric_early_signal"), high_signal, help=t("metric_early_help"))
 
-# 主内容区分页（使用Streamlit原生方式或pages目录）
 st.markdown("---")
-st.info("👈 使用左侧边栏的页面导航，或访问各功能模块：")
+st.info(t("nav_hint"))
 
-# 展示简要数据预览
 if not display_df.empty:
-    st.subheader("📈 活跃度排行 Top 10")
-    top10 = display_df.nlargest(10, 'total_score')[['company_name', 'en_name', 'tech_route', 'total_score', 'signal_type']]
-    
-    # 用颜色标记信号类型
+    st.subheader(t("top10_title"))
+    top10 = display_df.nlargest(10, 'total_score')[['company_name', 'en_name', 'tech_route', 'total_score', 'signal_type']].copy()
+
+    # 翻译显示列
+    top10['tech_route'] = top10['tech_route'].apply(translate_tech_route)
+    top10['signal_type'] = top10['signal_type'].apply(translate_signal_type)
+
     def color_signal(val):
         colors = {
-            'Substantive_Growth': 'background-color: #d4edda',
-            'Funding_Driven': 'background-color: #fff3cd', 
-            'Early_Signal': 'background-color: #cce5ff',
-            'Low_Activity': ''
+            translate_signal_type('Substantive_Growth'): 'background-color: #d4edda',
+            translate_signal_type('Funding_Driven'): 'background-color: #fff3cd',
+            translate_signal_type('Early_Signal'): 'background-color: #cce5ff',
+            translate_signal_type('Low_Activity'): ''
         }
         return colors.get(val, '')
-    
+
     st.dataframe(
         top10.style.map(color_signal, subset=['signal_type']),
         use_container_width=True
     )
 
-    # 信号类型分布
-    st.subheader("🎯 赛道信号分布")
+    st.subheader(t("signal_distribution"))
     col1, col2 = st.columns(2)
-    
+
     with col1:
         signal_counts = companies_df['signal_type'].value_counts()
-        fig = px.pie(values=signal_counts.values, names=signal_counts.index,
-                     title="信号类型分布",
-                     color_discrete_map={
-                         'Substantive_Growth': '#28a745',
-                         'Funding_Driven': '#ffc107',
-                         'Early_Signal': '#007bff',
-                         'Low_Activity': '#6c757d'
-                     })
+        signal_labels = [translate_signal_type(s) for s in signal_counts.index]
+        fig = px.pie(
+            values=signal_counts.values,
+            names=signal_labels,
+            title=t("signal_type_pie_title"),
+            color_discrete_map={
+                translate_signal_type('Substantive_Growth'): '#28a745',
+                translate_signal_type('Funding_Driven'): '#ffc107',
+                translate_signal_type('Early_Signal'): '#007bff',
+                translate_signal_type('Low_Activity'): '#6c757d'
+            }
+        )
         st.plotly_chart(fig, use_container_width=True)
-    
+
     with col2:
         if 'tech_route' in companies_df.columns:
             route_counts = companies_df['tech_route'].value_counts().head(8)
-            fig = px.bar(x=route_counts.index, y=route_counts.values,
-                        title="技术路线分布",
-                        labels={'x': '技术路线', 'y': '公司数量'})
+            route_labels = [translate_tech_route(r) for r in route_counts.index]
+            fig = px.bar(
+                x=route_labels,
+                y=route_counts.values,
+                title=t("tech_route_bar_title"),
+                labels={'x': t("tech_route_x"), 'y': t("tech_route_y")}
+            )
             st.plotly_chart(fig, use_container_width=True)
-    
-    # 融资趋势时序图
-    st.subheader("💰 融资趋势")
+
+    st.subheader(t("funding_trend_title"))
     if not funding_df.empty:
         funding_df['funding_date'] = pd.to_datetime(funding_df['funding_date'])
         monthly_funding = funding_df.groupby(funding_df['funding_date'].dt.to_period('M'))['amount_rmb_m'].sum().reset_index()
         monthly_funding['funding_date'] = monthly_funding['funding_date'].astype(str)
-        fig = px.line(monthly_funding, x='funding_date', y='amount_rmb_m',
-                     title="月度融资金额趋势（百万元人民币）",
-                     labels={'funding_date': '月份', 'amount_rmb_m': '融资金额'})
+        fig = px.line(
+            monthly_funding,
+            x='funding_date',
+            y='amount_rmb_m',
+            title=t("funding_monthly_title"),
+            labels={'funding_date': t("funding_month_x"), 'amount_rmb_m': t("funding_amount_y")}
+        )
         st.plotly_chart(fig, use_container_width=True)
 
-# 论文趋势
 if not papers_df.empty:
-    st.subheader("📄 论文发表趋势")
+    st.subheader(t("paper_trend_title"))
     papers_df['published'] = pd.to_datetime(papers_df['published'])
     monthly_papers = papers_df.groupby(papers_df['published'].dt.to_period('M')).size().reset_index(name='count')
     monthly_papers['published'] = monthly_papers['published'].astype(str)
-    fig = px.bar(monthly_papers, x='published', y='count',
-                title="月度论文发表数量",
-                labels={'published': '月份', 'count': '论文数量'})
+    fig = px.bar(
+        monthly_papers,
+        x='published',
+        y='count',
+        title=t("paper_monthly_title"),
+        labels={'published': t("paper_month_x"), 'count': t("paper_count_y")}
+    )
     st.plotly_chart(fig, use_container_width=True)
 
-# 页脚
 st.markdown("---")
-st.caption("📌 数据来源：arXiv、GitHub、IT桔子、公开报道 | 仅供投资研究方法论展示，不构成投资建议")
-st.caption("Built by 张栩阳 | 深圳天使投资引导基金投资研究实习生")
+st.caption(t("footer_source"))
+st.caption(t("footer_author"))
